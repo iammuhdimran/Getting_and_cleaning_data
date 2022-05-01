@@ -1,0 +1,43 @@
+library(reshape2)
+
+file_name =  "dataset.zip"
+file_URL  ="https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip "
+download.file(file_URL, file_name, method="curl")
+
+# Load activity labels + features
+activity_labels = read.table("UCI HAR Dataset/activity_labels.txt")
+activity_abels[,2] = as.character(activity_labels[,2])
+features = read.table("UCI HAR Dataset/features.txt")
+features[,2] = as.character(features[,2])
+
+# Extract only the data on mean and standard deviation
+features_wanted = grep(".*mean.*|.*std.*", features[,2])
+features_wanted.names = features[features_wanted,2]
+features_wanted.names = gsub('-mean', 'Mean', features_wanted.names)
+features_wanted.names = gsub('-std', 'Std', features_wanted.names)
+features_wanted.names = gsub('[-()]', '', features_wanted.names)
+
+
+# Load the datasets
+train = read.table("UCI HAR Dataset/train/X_train.txt")[featuresWanted]
+train_activities = read.table("UCI HAR Dataset/train/Y_train.txt")
+train_subjects = read.table("UCI HAR Dataset/train/subject_train.txt")
+train = cbind(train_subjects, train_activities, train)
+
+test = read.table("UCI HAR Dataset/test/X_test.txt")[featuresWanted]
+test_activities = read.table("UCI HAR Dataset/test/Y_test.txt")
+test_subjects = read.table("UCI HAR Dataset/test/subject_test.txt")
+test = cbind(test_subjects, test_activities, test)
+
+# merge datasets and add labels
+all_data = rbind(train, test)
+colnames(all_data) = c("subject", "activity", features_wanted.names)
+
+# turn activities & subjects into factors
+all_data$activity = factor(all_data$activity, levels = activity_labels[,1], labels = activity_labels[,2])
+all_data$subject = as.factor(all_data$subject)
+
+all_data.melted = melt(all_data, id = c("subject", "activity"))
+all_data.mean = dcast(all_data.melted, subject + activity ~ variable, mean)
+
+write.table(all_data.mean, "tidy.txt", row.names = FALSE, quote = FALSE)
